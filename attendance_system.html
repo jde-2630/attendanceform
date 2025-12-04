@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+        }
+        .section {
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .grade-section {
+            margin-bottom: 40px;
+        }
+        .reset-button {
+            background-color: #d9534f;
+        }
+        .reset-button:hover {
+            background-color: #c9302c;
+        }
+    </style>
+</head>
+<body>
+    <div id="formSection" class="container section active">
+        <h1>Attendance Form</h1>
+        <form id="attendanceForm">
+            <label for="studentName">Student's Name:</label>
+            <input type="text" id="studentName" required>
+
+            <label for="gradeLevel">Select Grade Level:</label>
+            <select id="gradeLevel" required>
+                <option value="ABM-11">ABM-11</option>
+                <option value="HUMSS-11">HUMSS-11</option>
+                <option value="STEM-11">STEM-11</option>
+                <option value="TVL-11">TVL-11</option>
+                <option value="ABM-12">ABM-12</option>
+                <option value="HUMSS-12">HUMSS-12</option>
+                <option value="STEM-12">STEM-12</option>
+                <option value="TVL-12">TVL-12</option>
+            </select>
+
+            <label for="lrn">LRN:</label>
+            <input type="text" id="lrn" required>
+
+            <label for="subject">Subject:</label>
+            <input type="text" id="subject" required>
+
+            <label for="overallAttendance">Attendance:</label>
+            <select id="overallAttendance" required>
+                <option value="AM class">AM class</option>
+                <option value="PM Class">PM Class</option>
+            </select>
+
+            <label for="date">Date:</label>
+            <input type="date" id="date" value="" readonly>
+
+            <div id="errorMessage" class="error" style="display:none;"></div>
+            <button type="button" onclick="submitForm()">Submit</button>
+            <button type="button" onclick="showSection('recordsSection')">Records</button>
+        </form>
+    </div>
+
+    <div id="submittedSection" class="container section">
+        <h1>Your Response Was Submitted</h1>
+        <button onclick="showSection('formSection')">Go Back</button>
+    </div>
+
+    <div id="recordsSection" class="container section">
+        <h1>Enter Password to View Records</h1>
+        <form id="passwordForm" onsubmit="checkPassword(event)">
+            <label for="password">Password:</label>
+            <input type="password" id="password" required>
+            <div id="passwordError" class="error" style="display:none;"></div>
+            <button type="submit">Submit</button>
+        </form>
+        <div id="recordsDisplay" style="display:none;">
+            <h2>Attendance Records</h2>
+            <button class="reset-button" onclick="resetRecords()">Reset All Records</button>
+            <div id="recordsContainer"></div>
+            <p id="noRecords" style="display:none;">No records found.</p>
+            <button onclick="showSection('formSection')">Back to Form</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => section.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+
+            if (sectionId !== 'recordsSection') {
+                document.getElementById('recordsDisplay').style.display = 'none';
+                document.getElementById('password').value = '';
+                document.getElementById('passwordError').style.display = 'none';
+            }
+        }
+
+        function submitForm() {
+            const studentName = document.getElementById('studentName').value.trim();
+            const gradeLevel = document.getElementById('gradeLevel').value;
+            const lrn = document.getElementById('lrn').value.trim();
+            const subject = document.getElementById('subject').value.trim();
+            const overallAttendance = document.getElementById('overallAttendance').value;
+            const date = document.getElementById('date').value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            if (!studentName || !gradeLevel || !lrn || !subject || !overallAttendance || !date) {
+                errorMessage.textContent = "Please fill in all fields.";
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            if (isNaN(lrn)) {
+                errorMessage.textContent = "LRN must be a number.";
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            errorMessage.style.display = 'none';
+
+            let records = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
+            records.push({ studentName, gradeLevel, lrn, subject, overallAttendance, date });
+            localStorage.setItem('attendanceRecords', JSON.stringify(records));
+
+            document.getElementById('attendanceForm').reset();
+            document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+            showSection('submittedSection');
+        }
+
+        function checkPassword(event) {
+            event.preventDefault();
+            const password = document.getElementById('password').value;
+            const passwordError = document.getElementById('passwordError');
+
+            if (password === 'jdej') {
+                passwordError.style.display = 'none';
+                document.getElementById('recordsDisplay').style.display = 'block';
+                displayRecords();
+            } else {
+                passwordError.textContent = 'Incorrect password. Please try again.';
+                passwordError.style.display = 'block';
+            }
+        }
+
+        function displayRecords() {
+            const records = JSON.parse(localStorage.getItem('attendanceRecords')) || [];
+            const recordsContainer = document.getElementById('recordsContainer');
+            const noRecords = document.getElementById('noRecords');
+
+            recordsContainer.innerHTML = '';
+
+            if (records.length === 0) {
+                noRecords.style.display = 'block';
+                return;
+            }
+
+            noRecords.style.display = 'none';
+
+            const gradeGroups = {};
+            records.forEach(record => {
+                if (!gradeGroups[record.gradeLevel]) {
+                    gradeGroups[record.gradeLevel] = [];
+                }
+                gradeGroups[record.gradeLevel].push(record);
+            });
+
+            for (const grade in gradeGroups) {
+                const gradeSection = document.createElement('div');
+                gradeSection.className = 'grade-section';
+                gradeSection.innerHTML = `<h3>${grade} Records</h3>`;
+
+                const table = document.createElement('table');
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Student's Name</th>
+                            <th>LRN</th>
+                            <th>Subject</th>
+                            <th>Overall Attendance</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                `;
+
+                const tbody = table.querySelector('tbody');
+                gradeGroups[grade].forEach(record => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${record.studentName}</td>
+                        <td>${record.lrn}</td>
+                        <td>${record.subject}</td>
+                        <td>${record.overallAttendance}</td>
+                        <td>${record.date}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                gradeSection.appendChild(table);
+                recordsContainer.appendChild(gradeSection);
+            }
+        }
+
+        function resetRecords() {
+            if (confirm('Are you sure you want to reset all records? This cannot be undone.')) {
+                localStorage.removeItem('attendanceRecords');
+                displayRecords();
+            }
+        }
+    </script>
+</body>
+</html>
